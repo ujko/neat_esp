@@ -1,28 +1,20 @@
-
+//Outboard part program (slave)
 #include <esp_now.h>
 #include <WiFi.h>
 
-uint8_t inboardAddress[] = {0xD4, 0xD4, 0xDA, 0xCE, 0xE3, 0x08};
+// uint8_t inboardAddress[] = {0x84, 0x1F, 0xE8, 0x07, 0xCD, 0x84};  //TEST WITH ANTENNA
+uint8_t inboardAddress[] = {0x3C, 0xE9, 0x0E, 0x6D, 0xE8, 0xD4};  //DESTINY. 
 
 //pins
 const int buttonPinOne = 13;
-const int buttonPinTwo = 14;
-const int buttonPinThree = 15;
-const int speedPin = 16;
-const int potPin = 33;
+const int potPin = 25;
 
 int incomingPinOne;
-int incomingPinTwo;
-int incomingPinThree;
-int incomingSpeed;
 int incomingPotValue;
 String success;
 
 typedef struct struct_message {
     int pinOne;
-    int pinTwo;
-    int pinThree;
-    int speed;
     int potValue;
 } struct_message;
 
@@ -43,12 +35,9 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
+  // Serial.print("Bytes received: ");
+  // Serial.println(len);
   incomingPinOne = incomingReadings.pinOne;
-  incomingPinTwo = incomingReadings.pinTwo;
-  incomingPinThree = incomingReadings.pinThree;
-  incomingSpeed = incomingReadings.speed;
   incomingPotValue = incomingReadings.potValue;
 }
 
@@ -60,7 +49,7 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  esp_now_register_send_cb(OnDataSent);
+  // esp_now_register_send_cb(OnDataSent);
   
   // Register peer
   memcpy(peerInfo.peer_addr, inboardAddress, 6);
@@ -76,18 +65,16 @@ void setup() {
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
   pinMode(buttonPinOne, OUTPUT);
-  pinMode(buttonPinTwo, OUTPUT);
-  pinMode(buttonPinThree, OUTPUT);
-  pinMode(speedPin, OUTPUT);
-  pinMode(potPin, OUTPUT);
 }
 
+int oldIncomingPinOne = -1;
+int oldPotVal = -1;
+
 void loop() {
-  incomingPinOne == 0 ? digitalWrite(buttonPinOne, LOW) : digitalWrite(buttonPinOne, HIGH);
-  incomingPinTwo == 0 ? digitalWrite(buttonPinTwo, LOW) : digitalWrite(buttonPinTwo, HIGH);
-  incomingPinThree == 0 ? digitalWrite(buttonPinThree, LOW) : digitalWrite(buttonPinThree, HIGH);
-  incomingSpeed == 0 ? digitalWrite(speedPin, LOW) : digitalWrite(speedPin, HIGH);
-  Serial.println(incomingPotValue);
-  analogWrite(potPin, incomingPotValue);
-  delay(10);
+  if (oldIncomingPinOne != incomingPinOne || oldPotVal != incomingPotValue) {
+    incomingPinOne == 0 ? digitalWrite(buttonPinOne, LOW) : digitalWrite(buttonPinOne, HIGH);
+    dacWrite(potPin, incomingPotValue);
+    oldIncomingPinOne = incomingPinOne;
+    oldPotVal = incomingPotValue;
+  }
 }
