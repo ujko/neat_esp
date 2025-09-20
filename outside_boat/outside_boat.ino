@@ -93,7 +93,7 @@ void loop() {
     chkLoop = 0;
     esp_err_t result = esp_now_send(inboardAddress, (uint8_t *) &chkInboard, sizeof(chkInboard));
     if (isOkConnection == false) {
-      dacWrite(potPin, 0);
+      incomingPotValue = 0;
     }
   }
   Serial.print("speed: ");
