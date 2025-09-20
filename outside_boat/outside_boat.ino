@@ -44,8 +44,8 @@ void OnDataSent(const wifi_tx_info_t* wifiInfo, esp_now_send_status_t status) {
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
+  // Serial.print("Bytes received: ");
+  // Serial.println(len);
   incomingPinOne = incomingReadings.pinOne;
   incomingPotValue = incomingReadings.potValue;
 }
@@ -97,7 +97,7 @@ void loop() {
     }
   }
   Serial.print("speed: ");
-  Serial.println(potPin);
-  sleep(500);
+  Serial.println(incomingPotValue);
+  delay(500);
 }
 //Outboard part program (slave)
