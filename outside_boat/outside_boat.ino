@@ -88,12 +88,16 @@ void loop() {
     oldPotVal = incomingPotValue;
   }
   chkLoop++;
-  if (chkLoop > 300) {
+  Serial.println(chkLoop);
+  if (chkLoop > 3) {
     chkLoop = 0;
     esp_err_t result = esp_now_send(inboardAddress, (uint8_t *) &chkInboard, sizeof(chkInboard));
     if (isOkConnection == false) {
       dacWrite(potPin, 0);
     }
   }
+  Serial.print("speed: ");
+  Serial.println(potPin);
+  sleep(500);
 }
 //Outboard part program (slave)
