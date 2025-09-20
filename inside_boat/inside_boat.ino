@@ -1,4 +1,4 @@
-//inboard part (master)
+/* inboard part (master) */
 #include <esp_now.h>
 #include <WiFi.h>
 
@@ -10,8 +10,13 @@ const int gap = 5;
 
 //pins
 const int potPin = 34;
+const int okLedPin = 13;
+const int notOkLedPin = 33;
+const int middlePot = 32;
 
 int potValue;
+
+bool isOkConnection = false;
 
 String success;
 
@@ -24,23 +29,47 @@ typedef struct struct_message {
 
 struct_message PinReadings;
 
+typedef struct struct_message_chk {
+    int test;
+} struct_message_chk;
+
+struct_message_chk incomingReadings;
+
 int pin1State = 0;
 
-void OnDataSent(const uint8_t mac_addr, esp_now_send_status_t status) {
+void OnDataSent(const wifi_tx_info_t* wifiInfo, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  if (status == ESP_NOW_SEND_SUCCESS) {
+    Serial.println("Delivery succeess");
+    isOkConnection = true;
+  } else {
+    Serial.println("Delivery failed");
+    isOkConnection = false;
+  }
+}
+
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+  Serial.print("Outboard status checked ");
 }
 
 void setup() {
   WiFi.mode(WIFI_STA);
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+  pinMode(okLedPin, OUTPUT);
+  pinMode(notOkLedPin, OUTPUT);
+  pinMode(middlePot, OUTPUT);
 
   // Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
+
+  esp_now_register_send_cb(OnDataSent);
+
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
   // Register peer
   memcpy(peerInfo.peer_addr, outboardAddress, 6);
@@ -54,25 +83,40 @@ void setup() {
   }
 }
 
-int oldPv = -1;
-
 void loop() {
     //data to send
     int potState = analogRead(potPin);
     int pv = potState / 16;
     int step = 1;
-    if (oldPv > pv + step || oldPv < pv - step) {
-      if (pv > center + gap) {
-        PinReadings.pinOne = 1;
-        PinReadings.potValue = (pv - center - gap) * 2;
-      } else if (pv < center - gap) {
-        PinReadings.pinOne = 0;
-        PinReadings.potValue = 255 - (pv * 2);
-      } else {
-        PinReadings.potValue = 0;
-      }
-      esp_err_t result = esp_now_send(outboardAddress, (uint8_t *) &PinReadings, sizeof(PinReadings));
-      oldPv = pv;
+    int sendVal;
+    Serial.print("Sending data: ");
+    if (pv > center + gap) {
+      PinReadings.pinOne = 1;
+      sendVal = (pv - center) * 2;
+      Serial.print("BACKWARD ");
+      digitalWrite(middlePot, LOW);    
+    } else if (pv < center - gap) {
+      PinReadings.pinOne = 0;
+      sendVal = 255 - (pv * 2);
+      Serial.print("FORWARD ");
+      digitalWrite(middlePot, LOW);
+    } else {
+      sendVal = 0;
+      Serial.print("STOP ENGINE ");
+      digitalWrite(middlePot, HIGH);
+    }
+    PinReadings.potValue = sendVal;
+    Serial.println(PinReadings.potValue);
+    esp_err_t result = esp_now_send(outboardAddress, (uint8_t *) &PinReadings, sizeof(PinReadings));
+
+    if (isOkConnection) {
+      digitalWrite(okLedPin, HIGH);
+      digitalWrite(notOkLedPin, LOW);
+    } else {
+      digitalWrite(okLedPin, LOW);
+      digitalWrite(notOkLedPin, HIGH);
     }
     delay(100);
 }
+
+/* inboard part (master) */
