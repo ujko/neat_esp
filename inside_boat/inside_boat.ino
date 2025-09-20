@@ -5,7 +5,7 @@
 // uint8_t outboardAddress[] = {0x80, 0xF3, 0xDA, 0x40, 0xEE, 0xC0};  //testowy z antenka
 uint8_t outboardAddress[] = {0xD4, 0xD4, 0xDA, 0xCE, 0xE3, 0x08};  //destiny
 
-const int center = 125;
+const int center = 113;
 const int gap = 5;
 
 //pins
@@ -13,6 +13,8 @@ const int potPin = 34;
 const int okLedPin = 13;
 const int notOkLedPin = 33;
 const int middlePot = 32;
+
+const int maxValue = 255;
 
 int potValue;
 
@@ -104,6 +106,9 @@ void loop() {
       sendVal = 0;
       Serial.print("STOP ENGINE ");
       digitalWrite(middlePot, HIGH);
+    }
+    if (sendVal > maxValue) {
+      sendVal = maxValue;
     }
     PinReadings.potValue = sendVal;
     Serial.println(PinReadings.potValue);
